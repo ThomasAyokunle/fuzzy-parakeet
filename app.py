@@ -1,10 +1,4 @@
-00:00:00 [Speaker 1]
-Good morning.
-00:00:00 [Speaker 1]
-How are you?
-00:00:03 [Speaker 1]
-So after doing the analysis of the blue trend sales, I hope I will get that today.
-00:00:08 [Speaker 1]
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -24,10 +18,10 @@ st.caption("Sales & Margin Performance | Google Sheets | 2022–Present")
 # GOOGLE SHEET CONFIG
 # --------------------------------
 # Replace with your actual Google Sheet ID
-GOOGLE_SHEET_ID = "PASTE_YOUR_SHEET_ID_HERE"
+GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1x3I_PlOBsVpftrnt_X1h0SHsn9zCu8RTILC13aXkqAs/edit?usp=sharing
 
 # If your data is in the first tab
-SHEET_NAME = "Sheet1"
+SHEET_NAME = "YEARLY DATA"
 
 CSV_URL = (
     f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}"
