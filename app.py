@@ -21,7 +21,7 @@ st.caption("Sales & Margin Performance | Google Sheets | 2022–Present")
 GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1x3I_PlOBsVpftrnt_X1h0SHsn9zCu8RTILC13aXkqAs/edit?usp=sharing"
 
 # If your data is in the first tab
-SHEET_NAME = "YEARLY DATA"
+SHEET_NAME = "YEARLY_DATA"
 
 CSV_URL = (
     f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}"
