@@ -18,7 +18,7 @@ st.caption("Sales & Margin Performance | Google Sheets | 2022–Present")
 # GOOGLE SHEET CONFIG
 # --------------------------------
 # Replace with your actual Google Sheet ID
-GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1x3I_PlOBsVpftrnt_X1h0SHsn9zCu8RTILC13aXkqAs/edit?usp=sharing
+GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1x3I_PlOBsVpftrnt_X1h0SHsn9zCu8RTILC13aXkqAs/edit?usp=sharing"
 
 # If your data is in the first tab
 SHEET_NAME = "YEARLY DATA"
