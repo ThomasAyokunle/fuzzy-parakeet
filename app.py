@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import urllib.parse
 
 # --------------------------------
 # PAGE CONFIG
@@ -23,22 +24,25 @@ GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1x3I_PlOBsVpftrnt_X1h0
 # If your data is in the first tab
 SHEET_NAME = "YEARLY_DATA"
 
+encoded_sheet_name = urllib.parse.quote(SHEET_NAME)
+
 CSV_URL = (
     f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}"
-    f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+    f"/gviz/tq?tqx=out:csv&sheet={encoded_sheet_name}"
 )
-
 # --------------------------------
 # LOAD DATA
-# --------------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(CSV_URL)
-    return df
+    try:
+        df = pd.read_csv(CSV_URL)
+        return df
+    except Exception as e:
+        st.error("Failed to load Google Sheet.")
+        st.code(str(e))
+        st.stop()
 
-df = load_data()
 
-# --------------------------------
 # DATA PREPARATION
 # --------------------------------
 def prepare_data(df):
