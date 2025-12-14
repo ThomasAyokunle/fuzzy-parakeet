@@ -43,13 +43,14 @@ def load_data():
         st.stop()
 
 
-# DATA PREPARATION
-# --------------------------------
 def prepare_data(df):
-    df = df.copy()
+    # Standardize column names
+    df.columns = df.columns.str.strip()
 
+    # Convert Month to datetime
     df["Month"] = pd.to_datetime(df["Month"], errors="coerce")
 
+    # Ensure numeric fields
     numeric_cols = [
         "Ext Price",
         "Qty Sold",
@@ -60,7 +61,19 @@ def prepare_data(df):
     ]
 
     for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.replace(",", "", regex=False)
+            .astype(float)
+        )
+
+    # Create derived metrics
+    df["Year"] = df["Month"].dt.year
+    df["Month_Period"] = df["Month"].dt.to_period("M").astype(str)
+
+    # Revenue alias (clarity)
+    df["Revenue"] = df["Ext Price"]
 
     return df
 
