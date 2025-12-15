@@ -346,7 +346,8 @@ st.markdown("---")
 # --------------------------------
 st.markdown("## 📊 Performance Trends")
 
-monthly = (
+# Prepare monthly data for current period
+monthly_current = (
     filtered_df
     .groupby(filtered_df["Month"].dt.to_period("M"))
     .agg(
@@ -357,58 +358,214 @@ monthly = (
     )
     .reset_index()
 )
-monthly["Month"] = monthly["Month"].astype(str)
+monthly_current["Month"] = monthly_current["Month"].dt.to_timestamp()
+monthly_current["Month_Label"] = monthly_current["Month"].dt.strftime('%b %Y')
+monthly_current["Period"] = "Current"
 
-# Revenue and Profit Trend
+# Prepare monthly data for comparison period
+monthly_comparison = (
+    comparison_df
+    .groupby(comparison_df["Month"].dt.to_period("M"))
+    .agg(
+        Revenue=("Revenue", "sum"),
+        Gross_Profit=("Total Margin $", "sum"),
+        Margin=("Margin %", "mean"),
+        Transactions=("Revenue", "count")
+    )
+    .reset_index()
+)
+monthly_comparison["Month"] = monthly_comparison["Month"].dt.to_timestamp()
+monthly_comparison["Month_Label"] = monthly_comparison["Month"].dt.strftime('%b %Y')
+monthly_comparison["Period"] = "Previous"
+
+# Revenue and Profit Trend with Comparison
 fig_rev_profit = go.Figure()
+
+# Current period - Revenue (bars)
 fig_rev_profit.add_trace(go.Bar(
-    x=monthly["Month"],
-    y=monthly["Revenue"],
-    name="Revenue",
+    x=monthly_current["Month_Label"],
+    y=monthly_current["Revenue"],
+    name="Revenue (Current)",
     marker_color='#667eea',
-    yaxis='y'
+    text=monthly_current["Revenue"].apply(lambda x: format_number_plain(x)),
+    textposition='outside',
+    textfont=dict(size=10)
 ))
+
+# Current period - Gross Profit (line)
 fig_rev_profit.add_trace(go.Scatter(
-    x=monthly["Month"],
-    y=monthly["Gross_Profit"],
-    name="Gross Profit",
+    x=monthly_current["Month_Label"],
+    y=monthly_current["Gross_Profit"],
+    name="Gross Profit (Current)",
     mode='lines+markers',
     marker=dict(size=8, color='#f5576c'),
-    line=dict(width=3),
-    yaxis='y'
+    line=dict(width=3, color='#f5576c')
 ))
+
+# Previous period - Revenue (dashed line for comparison)
+if len(monthly_comparison) > 0:
+    fig_rev_profit.add_trace(go.Scatter(
+        x=monthly_comparison["Month_Label"],
+        y=monthly_comparison["Revenue"],
+        name="Revenue (Previous)",
+        mode='lines',
+        line=dict(width=2, color='#667eea', dash='dash'),
+        opacity=0.5
+    ))
+
 fig_rev_profit.update_layout(
     title="Revenue & Gross Profit Trend",
     xaxis_title="Month",
     yaxis_title="Amount (₦)",
     hovermode='x unified',
-    height=400,
+    height=450,
     showlegend=True,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    xaxis=dict(tickangle=-45)
 )
 
-# Margin Trend
+# Margin Trend with Comparison
 fig_margin = go.Figure()
+
+# Current period margin
 fig_margin.add_trace(go.Scatter(
-    x=monthly["Month"],
-    y=monthly["Margin"],
+    x=monthly_current["Month_Label"],
+    y=monthly_current["Margin"],
+    name="Current Period",
     mode='lines+markers',
     fill='tozeroy',
     marker=dict(size=10, color='#00f2fe'),
-    line=dict(width=3, color='#4facfe')
+    line=dict(width=3, color='#4facfe'),
+    text=monthly_current["Margin"].apply(lambda x: f"{x:.1f}%"),
+    textposition='top center'
 ))
+
+# Previous period margin
+if len(monthly_comparison) > 0:
+    fig_margin.add_trace(go.Scatter(
+        x=monthly_comparison["Month_Label"],
+        y=monthly_comparison["Margin"],
+        name="Previous Period",
+        mode='lines+markers',
+        marker=dict(size=8, color='#a78bfa'),
+        line=dict(width=2, color='#a78bfa', dash='dot'),
+        opacity=0.6
+    ))
+
 fig_margin.add_hline(y=20, line_dash="dash", line_color="red", 
-                     annotation_text="Target: 20%")
+                     annotation_text="Target: 20%", annotation_position="right")
 fig_margin.update_layout(
-    title="Gross Margin Trend (%)",
+    title="Gross Margin Trend (%) - Current vs Previous",
     xaxis_title="Month",
     yaxis_title="Margin %",
-    height=400
+    height=450,
+    showlegend=True,
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    xaxis=dict(tickangle=-45),
+    yaxis=dict(range=[0, max(monthly_current["Margin"].max() * 1.2, 25)])
 )
 
 col1, col2 = st.columns(2)
 col1.plotly_chart(fig_rev_profit, use_container_width=True)
 col2.plotly_chart(fig_margin, use_container_width=True)
+
+# Add a monthly comparison table
+st.markdown("### 📋 Monthly Breakdown")
+comparison_table = monthly_current[["Month_Label", "Revenue", "Gross_Profit", "Margin", "Transactions"]].copy()
+comparison_table.columns = ["Month", "Revenue", "Gross Profit", "Margin %", "Transactions"]
+
+# Format the table
+st.dataframe(
+    comparison_table.style.format({
+        "Revenue": lambda x: format_number(x),
+        "Gross Profit": lambda x: format_number(x),
+        "Margin %": "{:.1f}%",
+        "Transactions": "{:,.0f}"
+    }),
+    hide_index=True,
+    use_container_width=True
+)
+
+st.markdown("---")
+
+# --------------------------------
+# PERIOD COMPARISON
+# --------------------------------
+st.markdown("## 🔄 Period Comparison Analysis")
+
+comp_col1, comp_col2, comp_col3 = st.columns(3)
+
+with comp_col1:
+    st.markdown("### 📅 Current Period")
+    st.metric("Date Range", f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}")
+    st.metric("Revenue", format_number(curr_rev))
+    st.metric("Gross Profit", format_number(curr_gp))
+    st.metric("Margin", f"{curr_margin:.1f}%")
+    st.metric("Transactions", f"{curr_footfall:,}")
+
+with comp_col2:
+    st.markdown("### 📅 Previous Period")
+    st.metric("Date Range", f"{comparison_start.strftime('%b %d, %Y')} - {comparison_end.strftime('%b %d, %Y')}")
+    st.metric("Revenue", format_number(comp_rev))
+    st.metric("Gross Profit", format_number(comp_gp))
+    st.metric("Margin", f"{comp_margin:.1f}%")
+    st.metric("Transactions", f"{comp_footfall:,}")
+
+with comp_col3:
+    st.markdown("### 📊 Change")
+    st.metric("Period", f"{days_diff + 1} days")
+    
+    if comp_rev > 0:
+        rev_diff = curr_rev - comp_rev
+        st.metric("Revenue Change", format_number(rev_diff), f"{rev_change:+.1f}%")
+    else:
+        st.metric("Revenue Change", "N/A", "No comparison data")
+    
+    if comp_gp > 0:
+        gp_diff = curr_gp - comp_gp
+        st.metric("Profit Change", format_number(gp_diff), f"{gp_change:+.1f}%")
+    else:
+        st.metric("Profit Change", "N/A", "No comparison data")
+    
+    st.metric("Margin Change", f"{margin_change:+.1f}pp")
+    
+    if comp_footfall > 0:
+        footfall_diff = curr_footfall - comp_footfall
+        st.metric("Transaction Change", f"{footfall_diff:+,}", f"{footfall_change:+.1f}%")
+    else:
+        st.metric("Transaction Change", "N/A", "No comparison data")
+
+# Comparison insights
+st.markdown("#### 🎯 Key Takeaways")
+comparison_insights = []
+
+if comp_rev > 0:
+    if rev_change > 10:
+        comparison_insights.append(("✅", "success", f"Strong revenue growth of {rev_change:.1f}% vs previous period"))
+    elif rev_change > 0:
+        comparison_insights.append(("📈", "info", f"Positive revenue growth of {rev_change:.1f}%"))
+    else:
+        comparison_insights.append(("⚠️", "warning", f"Revenue declined {abs(rev_change):.1f}% - requires attention"))
+    
+    if margin_change > 1:
+        comparison_insights.append(("✅", "success", f"Margin improved by {margin_change:.1f} percentage points"))
+    elif margin_change < -1:
+        comparison_insights.append(("⚠️", "warning", f"Margin compressed by {abs(margin_change):.1f} percentage points"))
+    
+    if footfall_change < -5 and rev_change > 0:
+        comparison_insights.append(("💡", "info", "Revenue up despite fewer transactions - higher basket value driving growth"))
+    elif footfall_change > 5 and basket_change < 0:
+        comparison_insights.append(("💡", "info", "More transactions but lower basket - opportunity to increase upselling"))
+
+cols = st.columns(len(comparison_insights) if comparison_insights else 1)
+for idx, (icon, box_type, message) in enumerate(comparison_insights):
+    with cols[idx]:
+        if box_type == "success":
+            st.success(f"{icon} {message}")
+        elif box_type == "warning":
+            st.warning(f"{icon} {message}")
+        else:
+            st.info(f"{icon} {message}")
 
 st.markdown("---")
 
