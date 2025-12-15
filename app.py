@@ -21,13 +21,24 @@ st.markdown("""
         padding-top: 2rem;
     }
     .stMetric {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background-color: #f0f2f6;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid #e1e4e8;
     }
     .stMetric label {
-        font-size: 0.9rem !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: #374151 !important;
+    }
+    .stMetric [data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        color: #1e3a8a !important;
+    }
+    .stMetric [data-testid="stMetricDelta"] {
+        font-size: 1rem !important;
         font-weight: 600 !important;
     }
     .insight-box {
@@ -63,7 +74,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Pharmacy Performance Dashboard")
+st.title("📊 Pharmacy Performance Dashboard")
 st.markdown("**Executive Analytics | Real-time Performance Monitoring**")
 
 # --------------------------------
@@ -96,12 +107,12 @@ df = load_data()
 # --------------------------------
 # SIDEBAR FILTERS
 # --------------------------------
-st.sidebar.markdown("### Filters")
+st.sidebar.markdown("### 🎯 Filters")
 
 stores = ["All Stores"] + sorted(df["Store"].dropna().unique().tolist())
 departments = ["All Departments"] + sorted(df["Department"].dropna().unique().tolist())
 
-selected_store = st.sidebar.selectbox("Branch", stores)
+selected_store = st.sidebar.selectbox("📍 Branch", stores)
 selected_department = st.sidebar.selectbox("🏥 Department", departments)
 
 st.sidebar.markdown("---")
@@ -110,41 +121,59 @@ st.sidebar.markdown("### 📅 Time Period")
 min_date = df["Month"].min().date()
 max_date = df["Month"].max().date()
 
+# Get the last complete month (end of previous month)
+today_actual = datetime.now().date()
+if today_actual.day == 1:
+    last_complete_month = (today_actual - timedelta(days=1))
+else:
+    # If we're mid-month, use last month's end as the last complete data
+    last_complete_month = today_actual.replace(day=1) - timedelta(days=1)
+
+# Use the actual max date from data (which should be month-end)
+# But don't go beyond last complete month
+effective_max_date = min(max_date, last_complete_month)
+
 preset = st.sidebar.selectbox(
     "Quick Select",
     ["Custom", "MTD", "QTD", "YTD", "Last 6 Months", "Last 12 Months"]
 )
 
-today = max_date
-
 if preset == "MTD":
-    start_date = today.replace(day=1)
-    end_date = today
+    # Current month data (if available)
+    start_date = effective_max_date.replace(day=1)
+    end_date = effective_max_date
 elif preset == "QTD":
-    quarter_month = ((today.month - 1) // 3) * 3 + 1
-    start_date = today.replace(month=quarter_month, day=1)
-    end_date = today
+    quarter_month = ((effective_max_date.month - 1) // 3) * 3 + 1
+    start_date = effective_max_date.replace(month=quarter_month, day=1)
+    end_date = effective_max_date
 elif preset == "YTD":
-    start_date = today.replace(month=1, day=1)
-    end_date = today
+    start_date = effective_max_date.replace(month=1, day=1)
+    end_date = effective_max_date
 elif preset == "Last 6 Months":
-    start_date = today - timedelta(days=182)
-    end_date = today
+    # Go back 6 complete months
+    end_date = effective_max_date
+    if end_date.month > 6:
+        start_date = end_date.replace(month=end_date.month - 6, day=1)
+    else:
+        start_date = end_date.replace(year=end_date.year - 1, month=end_date.month + 6, day=1)
 elif preset == "Last 12 Months":
-    start_date = today - timedelta(days=365)
-    end_date = today
+    # Go back 12 complete months
+    end_date = effective_max_date
+    start_date = end_date.replace(year=end_date.year - 1, month=end_date.month, day=1)
 else:
     date_selection = st.sidebar.date_input(
         "Select date range",
-        value=[min_date, max_date],
+        value=[min_date, effective_max_date],
         min_value=min_date,
-        max_value=max_date
+        max_value=effective_max_date
     )
     if isinstance(date_selection, (list, tuple)) and len(date_selection) == 2:
         start_date, end_date = date_selection
     else:
         start_date = date_selection
         end_date = date_selection
+
+st.sidebar.info(f"📊 Latest data: {effective_max_date.strftime('%b %Y')}")
 
 # --------------------------------
 # APPLY FILTERS
@@ -157,10 +186,32 @@ if selected_store != "All Stores":
 if selected_department != "All Departments":
     filtered_df = filtered_df[filtered_df["Department"] == selected_department]
 
+# Convert dates to datetime for comparison
 filtered_df = filtered_df[
-    (filtered_df["Month"].dt.date >= start_date) &
-    (filtered_df["Month"].dt.date <= end_date)
+    (filtered_df["Month"] >= pd.to_datetime(start_date)) &
+    (filtered_df["Month"] <= pd.to_datetime(end_date))
 ]
+
+# --------------------------------
+# NUMBER FORMATTING HELPER
+# --------------------------------
+def format_number(num):
+    """Format large numbers to K (thousands) or M (millions)"""
+    if abs(num) >= 1_000_000:
+        return f"₦{num/1_000_000:.1f}M"
+    elif abs(num) >= 1_000:
+        return f"₦{num/1_000:.0f}K"
+    else:
+        return f"₦{num:.0f}"
+
+def format_number_plain(num):
+    """Format without currency symbol"""
+    if abs(num) >= 1_000_000:
+        return f"{num/1_000_000:.1f}M"
+    elif abs(num) >= 1_000:
+        return f"{num/1_000:.0f}K"
+    else:
+        return f"{num:.0f}"
 
 # --------------------------------
 # COMPARISON PERIOD
@@ -175,9 +226,10 @@ if selected_store != "All Stores":
 if selected_department != "All Departments":
     comparison_df = comparison_df[comparison_df["Department"] == selected_department]
 
+# Convert to datetime for comparison
 comparison_df = comparison_df[
-    (comparison_df["Month"].dt.date >= comparison_start) &
-    (comparison_df["Month"].dt.date <= comparison_end)
+    (comparison_df["Month"] >= pd.to_datetime(comparison_start)) &
+    (comparison_df["Month"] <= pd.to_datetime(comparison_end))
 ]
 
 # --------------------------------
@@ -205,7 +257,7 @@ basket_change = ((curr_basket - comp_basket) / comp_basket * 100) if comp_basket
 # --------------------------------
 # EXECUTIVE SUMMARY
 # --------------------------------
-st.markdown("## Executive Summary")
+st.markdown("## 📈 Executive Summary")
 
 col1, col2, col3 = st.columns(3)
 
@@ -213,7 +265,7 @@ with col1:
     if rev_change > 0:
         st.markdown(f"""
         <div class="success-box">
-        <h4> Revenue Growth</h4>
+        <h4>✅ Revenue Growth</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">+{rev_change:.1f}%</p>
         <p>vs. previous period</p>
         </div>
@@ -221,7 +273,7 @@ with col1:
     else:
         st.markdown(f"""
         <div class="warning-box">
-        <h4>Revenue Decline</h4>
+        <h4>⚠️ Revenue Decline</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{rev_change:.1f}%</p>
         <p>vs. previous period</p>
         </div>
@@ -231,7 +283,7 @@ with col2:
     if curr_margin > 20:
         st.markdown(f"""
         <div class="success-box">
-        <h4>Healthy Margins</h4>
+        <h4>✅ Healthy Margins</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{curr_margin:.1f}%</p>
         <p>Gross margin maintained</p>
         </div>
@@ -239,7 +291,7 @@ with col2:
     else:
         st.markdown(f"""
         <div class="warning-box">
-        <h4> Margin Pressure</h4>
+        <h4>⚠️ Margin Pressure</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{curr_margin:.1f}%</p>
         <p>Below 20% target</p>
         </div>
@@ -249,7 +301,7 @@ with col3:
     if basket_change > 0:
         st.markdown(f"""
         <div class="success-box">
-        <h4>Basket Value Up</h4>
+        <h4>✅ Basket Value Up</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">+{basket_change:.1f}%</p>
         <p>Average transaction size</p>
         </div>
@@ -257,7 +309,7 @@ with col3:
     else:
         st.markdown(f"""
         <div class="insight-box">
-        <h4>Basket Value</h4>
+        <h4>📊 Basket Value</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{basket_change:.1f}%</p>
         <p>Average transaction size</p>
         </div>
@@ -268,22 +320,31 @@ st.markdown("---")
 # --------------------------------
 # KPI METRICS
 # --------------------------------
-st.markdown("## Key Performance Indicators")
+st.markdown("## 💰 Key Performance Indicators")
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
-c1.metric("Revenue", f"₦{curr_rev:,.0f}", f"{rev_change:+.1f}%")
-c2.metric("Gross Profit", f"₦{curr_gp:,.0f}", f"{gp_change:+.1f}%")
-c3.metric("Margin %", f"{curr_margin:.1f}%", f"{margin_change:+.1f}pp")
-c4.metric("Transactions", f"{curr_footfall:,}", f"{footfall_change:+.1f}%")
-c5.metric("Avg Basket", f"₦{curr_basket:,.0f}", f"{basket_change:+.1f}%")
+with c1:
+    st.metric("Revenue", format_number(curr_rev), f"{rev_change:+.1f}%")
+
+with c2:
+    st.metric("Gross Profit", format_number(curr_gp), f"{gp_change:+.1f}%")
+
+with c3:
+    st.metric("Margin %", f"{curr_margin:.1f}%", f"{margin_change:+.1f}pp")
+
+with c4:
+    st.metric("Transactions", f"{curr_footfall:,}", f"{footfall_change:+.1f}%")
+
+with c5:
+    st.metric("Avg Basket", format_number(curr_basket), f"{basket_change:+.1f}%")
 
 st.markdown("---")
 
 # --------------------------------
 # TREND ANALYSIS
 # --------------------------------
-st.markdown("##Performance Trends")
+st.markdown("## 📊 Performance Trends")
 
 monthly = (
     filtered_df
@@ -356,7 +417,7 @@ st.markdown("---")
 # --------------------------------
 st.markdown("## 🔍 Comparative Analysis")
 
-tab1, tab2, tab3 = st.tabs(["Top Products", "Store Performance", "Department Mix"])
+tab1, tab2, tab3 = st.tabs(["📦 Top Products", "🏪 Store Performance", "🏥 Department Mix"])
 
 with tab1:
     top_products = (
@@ -382,7 +443,7 @@ with tab1:
             colorscale='Viridis',
             showscale=True
         ),
-        text=top_products["Revenue"].apply(lambda x: f"₦{x:,.0f}"),
+        text=top_products["Revenue"].apply(lambda x: format_number(x)),
         textposition='outside'
     ))
     fig_products.update_layout(
@@ -397,7 +458,7 @@ with tab1:
     col1, col2 = st.columns(2)
     col1.dataframe(
         top_products[["Item Name", "Revenue", "Quantity"]].style.format({
-            "Revenue": "₦{:,.0f}",
+            "Revenue": lambda x: format_number(x),
             "Quantity": "{:,.0f}"
         }),
         hide_index=True,
@@ -435,7 +496,7 @@ with tab2:
         
         st.dataframe(
             store_perf.style.format({
-                "Revenue": "₦{:,.0f}",
+                "Revenue": lambda x: format_number(x),
                 "Margin": "{:.1f}%",
                 "Transactions": "{:,.0f}"
             }),
@@ -443,7 +504,7 @@ with tab2:
             use_container_width=True
         )
     else:
-        st.info(f"Currently viewing: {selected_store}. Select 'All Stores' to see comparison.")
+        st.info(f"📍 Currently viewing: {selected_store}. Select 'All Stores' to see comparison.")
 
 with tab3:
     if selected_department == "All Departments":
@@ -472,48 +533,48 @@ with tab3:
         
         st.dataframe(
             dept_perf.style.format({
-                "Revenue": "₦{:,.0f}",
+                "Revenue": lambda x: format_number(x),
                 "Margin": "{:.1f}%"
             }),
             hide_index=True,
             use_container_width=True
         )
     else:
-        st.info(f"Currently viewing: {selected_department}. Select 'All Departments' to see mix.")
+        st.info(f"🏥 Currently viewing: {selected_department}. Select 'All Departments' to see mix.")
 
 st.markdown("---")
 
 # --------------------------------
 # INSIGHTS & RECOMMENDATIONS
 # --------------------------------
-st.markdown("## Key Insights & Recommendations")
+st.markdown("## 💡 Key Insights & Recommendations")
 
 insights = []
 
 # Revenue analysis
 if rev_change > 10:
-    insights.append(("success", "Strong Growth", f"Revenue increased by {rev_change:.1f}% - maintain momentum through inventory optimization"))
+    insights.append(("success", "🎯 Strong Growth", f"Revenue increased by {rev_change:.1f}% - maintain momentum through inventory optimization"))
 elif rev_change > 0:
-    insights.append(("info", "Moderate Growth", f"Revenue up {rev_change:.1f}% - explore opportunities to accelerate"))
+    insights.append(("info", "📈 Moderate Growth", f"Revenue up {rev_change:.1f}% - explore opportunities to accelerate"))
 else:
-    insights.append(("warning", "Revenue Decline", f"Revenue down {abs(rev_change):.1f}% - immediate action required"))
+    insights.append(("warning", "⚠️ Revenue Decline", f"Revenue down {abs(rev_change):.1f}% - immediate action required"))
 
 # Margin analysis
 if margin_change < -2:
-    insights.append(("warning", "Margin Pressure", f"Margins declined {abs(margin_change):.1f}pp - review pricing and supplier costs"))
+    insights.append(("warning", "💰 Margin Pressure", f"Margins declined {abs(margin_change):.1f}pp - review pricing and supplier costs"))
 elif curr_margin < 18:
-    insights.append(("warning", "Low Margins", "Current margins below industry standard - pricing review recommended"))
+    insights.append(("warning", "📉 Low Margins", "Current margins below industry standard - pricing review recommended"))
 
 # Basket size
 if basket_change < -5:
-    insights.append(("warning", "Declining Basket", f"Average basket down {abs(basket_change):.1f}% - consider upselling strategies"))
+    insights.append(("warning", "🛒 Declining Basket", f"Average basket down {abs(basket_change):.1f}% - consider upselling strategies"))
 elif basket_change > 5:
-    insights.append(("success", "Growing Basket", f"Average basket up {basket_change:.1f}% - successful cross-selling"))
+    insights.append(("success", "🛒 Growing Basket", f"Average basket up {basket_change:.1f}% - successful cross-selling"))
 
 # Top performer
 if len(filtered_df) > 0:
     top_product = filtered_df.groupby("Item Name")["Revenue"].sum().idxmax()
-    insights.append(("info", "Top Performer", f"{top_product} drives significant revenue - ensure adequate stock"))
+    insights.append(("info", "⭐ Top Performer", f"{top_product} drives significant revenue - ensure adequate stock"))
 
 # Display insights
 for i, (box_type, title, message) in enumerate(insights[:5]):
@@ -544,7 +605,7 @@ st.markdown("---")
 # --------------------------------
 # DATA EXPORT
 # --------------------------------
-with st.expander("Export Data & Details"):
+with st.expander("📥 Export Data & Details"):
     col1, col2 = st.columns(2)
     
     with col1:
@@ -563,7 +624,7 @@ with st.expander("Export Data & Details"):
     
     csv = filtered_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="Download CSV",
+        label="📥 Download CSV",
         data=csv,
         file_name=f"pharmacy_data_{start_date}_{end_date}.csv",
         mime="text/csv"
