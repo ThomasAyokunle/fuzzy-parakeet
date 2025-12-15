@@ -74,7 +74,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Pharmacy Performance Dashboard")
+st.title("Pharmacy Performance Dashboard")
 st.markdown("**Executive Analytics | Real-time Performance Monitoring**")
 
 # --------------------------------
@@ -107,10 +107,10 @@ df = load_data()
 # --------------------------------
 # SIDEBAR FILTERS
 # --------------------------------
-st.sidebar.markdown("### 🎯 Filters")
+st.sidebar.markdown("### Filters")
 
 # Add theme toggle
-theme = st.sidebar.radio("🎨 Theme", ["Light", "Dark"], index=1, horizontal=True)
+theme = st.sidebar.radio("Theme", ["Light", "Dark"], index=1, horizontal=True)
 
 # Set color scheme based on theme
 if theme == "Dark":
@@ -131,11 +131,11 @@ st.sidebar.markdown("---")
 stores = ["All Stores"] + sorted(df["Store"].dropna().unique().tolist())
 departments = ["All Departments"] + sorted(df["Department"].dropna().unique().tolist())
 
-selected_store = st.sidebar.selectbox("📍 Branch", stores)
-selected_department = st.sidebar.selectbox("🏥 Department", departments)
+selected_store = st.sidebar.selectbox("Branch", stores)
+selected_department = st.sidebar.selectbox("Department", departments)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📅 Time Period")
+st.sidebar.markdown("### Time Period")
 
 min_date = df["Month"].min().date()
 max_date = df["Month"].max().date()
@@ -301,7 +301,7 @@ basket_change = ((curr_basket - comp_basket) / comp_basket * 100) if comp_basket
 # --------------------------------
 # EXECUTIVE SUMMARY
 # --------------------------------
-st.markdown("## 📈 Executive Summary")
+st.markdown("## Executive Summary")
 
 col1, col2, col3 = st.columns(3)
 
@@ -309,7 +309,7 @@ with col1:
     if rev_change > 0:
         st.markdown(f"""
         <div class="success-box">
-        <h4>✅ Revenue Growth</h4>
+        <h4>Revenue Growth</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">+{rev_change:.1f}%</p>
         <p>vs. previous period</p>
         </div>
@@ -317,7 +317,7 @@ with col1:
     else:
         st.markdown(f"""
         <div class="warning-box">
-        <h4>⚠️ Revenue Decline</h4>
+        <h4>Revenue Decline</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{rev_change:.1f}%</p>
         <p>vs. previous period</p>
         </div>
@@ -327,7 +327,7 @@ with col2:
     if curr_margin > 20:
         st.markdown(f"""
         <div class="success-box">
-        <h4>✅ Healthy Margins</h4>
+        <h4>Healthy Margins</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{curr_margin:.1f}%</p>
         <p>Gross margin maintained</p>
         </div>
@@ -335,7 +335,7 @@ with col2:
     else:
         st.markdown(f"""
         <div class="warning-box">
-        <h4>⚠️ Margin Pressure</h4>
+        <h4>Margin Pressure</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{curr_margin:.1f}%</p>
         <p>Below 20% target</p>
         </div>
@@ -345,7 +345,7 @@ with col3:
     if basket_change > 0:
         st.markdown(f"""
         <div class="success-box">
-        <h4>✅ Basket Value Up</h4>
+        <h4>Basket Value Up</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">+{basket_change:.1f}%</p>
         <p>Average transaction size</p>
         </div>
@@ -353,7 +353,7 @@ with col3:
     else:
         st.markdown(f"""
         <div class="insight-box">
-        <h4>📊 Basket Value</h4>
+        <h4>Basket Value</h4>
         <p style="font-size: 1.5rem; font-weight: bold;">{basket_change:.1f}%</p>
         <p>Average transaction size</p>
         </div>
@@ -364,7 +364,7 @@ st.markdown("---")
 # --------------------------------
 # KPI METRICS
 # --------------------------------
-st.markdown("## 💰 Key Performance Indicators")
+st.markdown("## Key Performance Indicators")
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -388,7 +388,7 @@ st.markdown("---")
 # --------------------------------
 # TREND ANALYSIS
 # --------------------------------
-st.markdown("## 📊 Performance Trends")
+st.markdown("## Performance Trends")
 
 # Prepare monthly data for current period
 monthly_current = (
@@ -576,27 +576,32 @@ col1.plotly_chart(fig_rev_profit, use_container_width=True)
 col2.plotly_chart(fig_margin, use_container_width=True)
 
 # Add a monthly comparison table
-st.markdown("### 📋 Monthly Breakdown")
+st.markdown("### Monthly Breakdown")
 
 if len(monthly_current) > 0:
-    comparison_table = monthly_current[["Month_Label", "Revenue", "Gross_Profit", "Margin", "Transactions"]].copy()
-    comparison_table.columns = ["Month", "Revenue", "Gross Profit", "Margin %", "Transactions"]
+    # Filter out months with no data for the table
+    comparison_table = monthly_current[monthly_current["Revenue"] > 0][["Month_Label", "Revenue", "Gross_Profit", "Margin", "Transactions"]].copy()
+    
+    if len(comparison_table) > 0:
+        comparison_table.columns = ["Month", "Revenue", "Gross Profit", "Margin %", "Transactions"]
 
-    # Format the table
-    st.dataframe(
-        comparison_table.style.format({
-            "Revenue": lambda x: format_number(x),
-            "Gross Profit": lambda x: format_number(x),
-            "Margin %": "{:.1f}%",
-            "Transactions": "{:,.0f}"
-        }).set_properties(**{
-            'background-color': plot_bg,
-            'color': text_color,
-            'border-color': grid_color
-        }),
-        hide_index=True,
-        use_container_width=True
-    )
+        # Format the table
+        st.dataframe(
+            comparison_table.style.format({
+                "Revenue": lambda x: format_number(x),
+                "Gross Profit": lambda x: format_number(x),
+                "Margin %": "{:.1f}%",
+                "Transactions": "{:,.0f}"
+            }).set_properties(**{
+                'background-color': plot_bg,
+                'color': text_color,
+                'border-color': grid_color
+            }),
+            hide_index=True,
+            use_container_width=True
+        )
+    else:
+        st.info("No transaction data available for the selected period")
 else:
     st.info("No data available for the selected period")
 
@@ -605,12 +610,12 @@ st.markdown("---")
 # --------------------------------
 # PERIOD COMPARISON
 # --------------------------------
-st.markdown("## 🔄 Period Comparison Analysis")
+st.markdown("## Period Comparison Analysis")
 
 comp_col1, comp_col2, comp_col3 = st.columns(3)
 
 with comp_col1:
-    st.markdown("### 📅 Current Period")
+    st.markdown("### Current Period")
     st.metric("Date Range", f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}")
     st.metric("Revenue", format_number(curr_rev))
     st.metric("Gross Profit", format_number(curr_gp))
@@ -618,7 +623,7 @@ with comp_col1:
     st.metric("Transactions", f"{curr_footfall:,}")
 
 with comp_col2:
-    st.markdown("### 📅 Previous Period")
+    st.markdown("### Previous Period")
     st.metric("Date Range", f"{comparison_start.strftime('%b %d, %Y')} - {comparison_end.strftime('%b %d, %Y')}")
     st.metric("Revenue", format_number(comp_rev))
     st.metric("Gross Profit", format_number(comp_gp))
@@ -626,7 +631,7 @@ with comp_col2:
     st.metric("Transactions", f"{comp_footfall:,}")
 
 with comp_col3:
-    st.markdown("### 📊 Change")
+    st.markdown("### Change")
     st.metric("Period", f"{days_diff + 1} days")
     
     if comp_rev > 0:
@@ -650,45 +655,45 @@ with comp_col3:
         st.metric("Transaction Change", "N/A", "No comparison data")
 
 # Comparison insights
-st.markdown("#### 🎯 Key Takeaways")
+st.markdown("#### Key Takeaways")
 comparison_insights = []
 
 if comp_rev > 0:
     if rev_change > 10:
-        comparison_insights.append(("✅", "success", f"Strong revenue growth of {rev_change:.1f}% vs previous period"))
+        comparison_insights.append(("success", f"Strong revenue growth of {rev_change:.1f}% vs previous period"))
     elif rev_change > 0:
-        comparison_insights.append(("📈", "info", f"Positive revenue growth of {rev_change:.1f}%"))
+        comparison_insights.append(("info", f"Positive revenue growth of {rev_change:.1f}%"))
     else:
-        comparison_insights.append(("⚠️", "warning", f"Revenue declined {abs(rev_change):.1f}% - requires attention"))
+        comparison_insights.append(("warning", f"Revenue declined {abs(rev_change):.1f}% - requires attention"))
     
     if margin_change > 1:
-        comparison_insights.append(("✅", "success", f"Margin improved by {margin_change:.1f} percentage points"))
+        comparison_insights.append(("success", f"Margin improved by {margin_change:.1f} percentage points"))
     elif margin_change < -1:
-        comparison_insights.append(("⚠️", "warning", f"Margin compressed by {abs(margin_change):.1f} percentage points"))
+        comparison_insights.append(("warning", f"Margin compressed by {abs(margin_change):.1f} percentage points"))
     
     if footfall_change < -5 and rev_change > 0:
-        comparison_insights.append(("💡", "info", "Revenue up despite fewer transactions - higher basket value driving growth"))
+        comparison_insights.append(("info", "Revenue up despite fewer transactions - higher basket value driving growth"))
     elif footfall_change > 5 and basket_change < 0:
-        comparison_insights.append(("💡", "info", "More transactions but lower basket - opportunity to increase upselling"))
+        comparison_insights.append(("info", "More transactions but lower basket - opportunity to increase upselling"))
 
 cols = st.columns(len(comparison_insights) if comparison_insights else 1)
-for idx, (icon, box_type, message) in enumerate(comparison_insights):
+for idx, (box_type, message) in enumerate(comparison_insights):
     with cols[idx]:
         if box_type == "success":
-            st.success(f"{icon} {message}")
+            st.success(message)
         elif box_type == "warning":
-            st.warning(f"{icon} {message}")
+            st.warning(message)
         else:
-            st.info(f"{icon} {message}")
+            st.info(message)
 
 st.markdown("---")
 
 # --------------------------------
 # COMPARATIVE ANALYSIS
 # --------------------------------
-st.markdown("## 🔍 Comparative Analysis")
+st.markdown("## Comparative Analysis")
 
-tab1, tab2, tab3 = st.tabs(["📦 Top Products", "🏪 Store Performance", "🏥 Department Mix"])
+tab1, tab2, tab3 = st.tabs(["Top Products", "Store Performance", "Department Mix"])
 
 with tab1:
     top_products = (
@@ -797,7 +802,7 @@ with tab2:
             use_container_width=True
         )
     else:
-        st.info(f"📍 Currently viewing: {selected_store}. Select 'All Stores' to see comparison.")
+        st.info(f"Currently viewing: {selected_store}. Select 'All Stores' to see comparison.")
 
 with tab3:
     if selected_department == "All Departments":
@@ -812,11 +817,25 @@ with tab3:
             .reset_index()
         )
         
+        # Get top 10 departments
+        top_10_dept = dept_perf.head(10).copy()
+        
+        # Calculate "Others" if there are more than 10 departments
+        if len(dept_perf) > 10:
+            others_revenue = dept_perf.iloc[10:]["Revenue"].sum()
+            others_margin = dept_perf.iloc[10:]["Margin"].mean()
+            others_row = pd.DataFrame({
+                "Department": ["Others"],
+                "Revenue": [others_revenue],
+                "Margin": [others_margin]
+            })
+            top_10_dept = pd.concat([top_10_dept, others_row], ignore_index=True)
+        
         fig_dept = px.pie(
-            dept_perf,
+            top_10_dept,
             values="Revenue",
             names="Department",
-            title="Revenue Distribution by Department",
+            title="Revenue Distribution by Department (Top 10)",
             hole=0.4,
             color_discrete_sequence=px.colors.qualitative.Set3
         )
@@ -828,7 +847,7 @@ with tab3:
         fig_dept.update_layout(
             height=500,
             title={
-                'text': "Revenue Distribution by Department",
+                'text': "Revenue Distribution by Department (Top 10)",
                 'font': {'size': 18, 'color': title_color, 'family': 'Arial Black'}
             },
             paper_bgcolor=bg_color,
@@ -838,7 +857,7 @@ with tab3:
         st.plotly_chart(fig_dept, use_container_width=True)
         
         st.dataframe(
-            dept_perf.style.format({
+            top_10_dept.style.format({
                 "Revenue": lambda x: format_number(x),
                 "Margin": "{:.1f}%"
             }),
@@ -846,41 +865,41 @@ with tab3:
             use_container_width=True
         )
     else:
-        st.info(f"🏥 Currently viewing: {selected_department}. Select 'All Departments' to see mix.")
+        st.info(f"Currently viewing: {selected_department}. Select 'All Departments' to see mix.")
 
 st.markdown("---")
 
 # --------------------------------
 # INSIGHTS & RECOMMENDATIONS
 # --------------------------------
-st.markdown("## 💡 Key Insights & Recommendations")
+st.markdown("## Key Insights & Recommendations")
 
 insights = []
 
 # Revenue analysis
 if rev_change > 10:
-    insights.append(("success", "🎯 Strong Growth", f"Revenue increased by {rev_change:.1f}% - maintain momentum through inventory optimization"))
+    insights.append(("success", "Strong Growth", f"Revenue increased by {rev_change:.1f}% - maintain momentum through inventory optimization"))
 elif rev_change > 0:
-    insights.append(("info", "📈 Moderate Growth", f"Revenue up {rev_change:.1f}% - explore opportunities to accelerate"))
+    insights.append(("info", "Moderate Growth", f"Revenue up {rev_change:.1f}% - explore opportunities to accelerate"))
 else:
-    insights.append(("warning", "⚠️ Revenue Decline", f"Revenue down {abs(rev_change):.1f}% - immediate action required"))
+    insights.append(("warning", "Revenue Decline", f"Revenue down {abs(rev_change):.1f}% - immediate action required"))
 
 # Margin analysis
 if margin_change < -2:
-    insights.append(("warning", "💰 Margin Pressure", f"Margins declined {abs(margin_change):.1f}pp - review pricing and supplier costs"))
+    insights.append(("warning", "Margin Pressure", f"Margins declined {abs(margin_change):.1f}pp - review pricing and supplier costs"))
 elif curr_margin < 18:
-    insights.append(("warning", "📉 Low Margins", "Current margins below industry standard - pricing review recommended"))
+    insights.append(("warning", "Low Margins", "Current margins below industry standard - pricing review recommended"))
 
 # Basket size
 if basket_change < -5:
-    insights.append(("warning", "🛒 Declining Basket", f"Average basket down {abs(basket_change):.1f}% - consider upselling strategies"))
+    insights.append(("warning", "Declining Basket", f"Average basket down {abs(basket_change):.1f}% - consider upselling strategies"))
 elif basket_change > 5:
-    insights.append(("success", "🛒 Growing Basket", f"Average basket up {basket_change:.1f}% - successful cross-selling"))
+    insights.append(("success", "Growing Basket", f"Average basket up {basket_change:.1f}% - successful cross-selling"))
 
 # Top performer
 if len(filtered_df) > 0:
     top_product = filtered_df.groupby("Item Name")["Revenue"].sum().idxmax()
-    insights.append(("info", "⭐ Top Performer", f"{top_product} drives significant revenue - ensure adequate stock"))
+    insights.append(("info", "Top Performer", f"{top_product} drives significant revenue - ensure adequate stock"))
 
 # Display insights
 for i, (box_type, title, message) in enumerate(insights[:5]):
@@ -911,7 +930,7 @@ st.markdown("---")
 # --------------------------------
 # DATA EXPORT
 # --------------------------------
-with st.expander("📥 Export Data & Details"):
+with st.expander("Export Data & Details"):
     col1, col2 = st.columns(2)
     
     with col1:
@@ -930,7 +949,7 @@ with st.expander("📥 Export Data & Details"):
     
     csv = filtered_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download CSV",
+        label="Download CSV",
         data=csv,
         file_name=f"pharmacy_data_{start_date}_{end_date}.csv",
         mime="text/csv"
