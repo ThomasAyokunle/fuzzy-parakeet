@@ -579,6 +579,7 @@ col2.plotly_chart(fig_margin, use_container_width=True)
 
 # Add a monthly comparison table
 st.markdown("### Monthly Breakdown")
+st.markdown("")  # Add spacing
 
 if len(monthly_current) > 0:
     # Filter out months with no data for the table
@@ -597,15 +598,21 @@ if len(monthly_current) > 0:
             }).set_properties(**{
                 'background-color': plot_bg,
                 'color': text_color,
-                'border-color': grid_color
+                'border-color': grid_color,
+                'font-size': '14px',
+                'padding': '12px'
             }),
             hide_index=True,
-            use_container_width=True
+            use_container_width=True,
+            height=400
         )
     else:
         st.info("No transaction data available for the selected period")
 else:
     st.info("No data available for the selected period")
+
+st.markdown("")
+st.markdown("")
 
 st.markdown("---")
 
