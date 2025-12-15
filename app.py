@@ -162,8 +162,8 @@ preset = st.sidebar.selectbox(
 # Comparison type
 comparison_type = st.sidebar.radio(
     "Compare with:",
-    ["Previous Period", "Same Period Last Year"],
-    help="Previous Period: Compare with the immediately preceding period of same length\nSame Period Last Year: Compare with the same months from last year"
+    ["Previous Period", "Previous Quarter", "Same Period Last Year"],
+    help="Previous Period: Same length immediately before\nPrevious Quarter: Compare Q3 vs Q2, etc.\nSame Period Last Year: Same months from last year"
 )
 
 if preset == "MTD":
@@ -261,6 +261,26 @@ if comparison_type == "Same Period Last Year":
         # Handle leap year edge case (Feb 29)
         comparison_start = start_date.replace(year=start_date.year - 1, day=28)
         comparison_end = end_date.replace(year=end_date.year - 1, day=28)
+elif comparison_type == "Previous Quarter":
+    # Compare with previous quarter (e.g., Q3 vs Q2, Q4 vs Q3)
+    # Determine current quarter
+    month = end_date.month
+    if month <= 3:  # Q1
+        # Compare with Q4 of previous year
+        comparison_start = end_date.replace(year=end_date.year - 1, month=10, day=1)
+        comparison_end = end_date.replace(year=end_date.year - 1, month=12, day=31)
+    elif month <= 6:  # Q2
+        # Compare with Q1
+        comparison_start = end_date.replace(month=1, day=1)
+        comparison_end = end_date.replace(month=3, day=31)
+    elif month <= 9:  # Q3
+        # Compare with Q2
+        comparison_start = end_date.replace(month=4, day=1)
+        comparison_end = end_date.replace(month=6, day=30)
+    else:  # Q4
+        # Compare with Q3
+        comparison_start = end_date.replace(month=7, day=1)
+        comparison_end = end_date.replace(month=9, day=30)
 else:
     # Previous Period - same length immediately before current period
     comparison_end = start_date - timedelta(days=1)
