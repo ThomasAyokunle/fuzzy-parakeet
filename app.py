@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -133,21 +134,43 @@ st.sidebar.markdown("---")
 stores = sorted(df["Store"].dropna().unique().tolist())
 departments = sorted(df["Department"].dropna().unique().tolist())
 
-selected_stores = st.sidebar.multiselect(
-    "Branch",
-    options=stores,
-    default=stores,
-    help="Select one or more branches. Default is all branches."
-)
+# Add "Select All" checkbox for stores
+select_all_stores = st.sidebar.checkbox("Select All Branches", value=True)
 
-selected_departments = st.sidebar.multiselect(
-    "Department",
-    options=departments,
-    default=departments,
-    help="Select one or more departments. Default is all departments."
-)
+if select_all_stores:
+    selected_stores = st.sidebar.multiselect(
+        "Branch",
+        options=stores,
+        default=stores,
+        help="Select one or more branches."
+    )
+else:
+    selected_stores = st.sidebar.multiselect(
+        "Branch",
+        options=stores,
+        default=[],
+        help="Select one or more branches."
+    )
 
-# If nothing selected, use all
+# Add "Select All" checkbox for departments
+select_all_departments = st.sidebar.checkbox("Select All Departments", value=True)
+
+if select_all_departments:
+    selected_departments = st.sidebar.multiselect(
+        "Department",
+        options=departments,
+        default=departments,
+        help="Select one or more departments."
+    )
+else:
+    selected_departments = st.sidebar.multiselect(
+        "Department",
+        options=departments,
+        default=[],
+        help="Select one or more departments."
+    )
+
+# If nothing selected, use all to prevent empty results
 if not selected_stores:
     selected_stores = stores
 if not selected_departments:
@@ -620,17 +643,15 @@ st.markdown("")  # Add spacing
 
 if len(monthly_current) > 0:
     # Filter out months with no data for the table
-    comparison_table = monthly_current[monthly_current["Revenue"] > 0][["Month_Label", "Revenue", "Gross_Profit", "Margin", "Transactions"]].copy()
+    comparison_table = monthly_current[monthly_current["Revenue"] > 0][["Month_Label", "Revenue", "Transactions"]].copy()
     
     if len(comparison_table) > 0:
-        comparison_table.columns = ["Month", "Revenue", "Gross Profit", "Margin %", "Transactions"]
+        comparison_table.columns = ["Month", "Revenue", "Transactions"]
 
         # Format the table
         st.dataframe(
             comparison_table.style.format({
                 "Revenue": lambda x: format_number(x),
-                "Gross Profit": lambda x: format_number(x),
-                "Margin %": "{:.1f}%",
                 "Transactions": "{:,.0f}"
             }).set_properties(**{
                 'background-color': plot_bg,
