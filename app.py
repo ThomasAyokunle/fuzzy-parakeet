@@ -92,7 +92,9 @@ CSV_URL = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx
 def load_data():
     df = pd.read_csv(CSV_URL)
     df.columns = df.columns.str.strip()
-    df["Month"] = pd.to_datetime(df["Month"], errors="coerce")
+    
+    # Parse dates in DD-MM-YYYY format
+    df["Month"] = pd.to_datetime(df["Month"], format='%d-%m-%Y', errors='coerce')
     
     numeric_cols = ["Ext Price", "Qty Sold", "Ext Cost", "Markup %", "Margin %", "Total Margin $"]
     for col in numeric_cols:
