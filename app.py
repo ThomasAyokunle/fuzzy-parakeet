@@ -130,11 +130,28 @@ else:
 
 st.sidebar.markdown("---")
 
-stores = ["All Stores"] + sorted(df["Store"].dropna().unique().tolist())
-departments = ["All Departments"] + sorted(df["Department"].dropna().unique().tolist())
+stores = sorted(df["Store"].dropna().unique().tolist())
+departments = sorted(df["Department"].dropna().unique().tolist())
 
-selected_store = st.sidebar.selectbox("Branch", stores)
-selected_department = st.sidebar.selectbox("Department", departments)
+selected_stores = st.sidebar.multiselect(
+    "Branch",
+    options=stores,
+    default=stores,
+    help="Select one or more branches. Default is all branches."
+)
+
+selected_departments = st.sidebar.multiselect(
+    "Department",
+    options=departments,
+    default=departments,
+    help="Select one or more departments. Default is all departments."
+)
+
+# If nothing selected, use all
+if not selected_stores:
+    selected_stores = stores
+if not selected_departments:
+    selected_departments = departments
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Time Period")
@@ -214,11 +231,11 @@ st.sidebar.info(f"📊 Latest data: {effective_max_date.strftime('%b %Y')}")
 # --------------------------------
 filtered_df = df.copy()
 
-if selected_store != "All Stores":
-    filtered_df = filtered_df[filtered_df["Store"] == selected_store]
+# Filter by selected stores
+filtered_df = filtered_df[filtered_df["Store"].isin(selected_stores)]
 
-if selected_department != "All Departments":
-    filtered_df = filtered_df[filtered_df["Department"] == selected_department]
+# Filter by selected departments
+filtered_df = filtered_df[filtered_df["Department"].isin(selected_departments)]
 
 # Convert dates to datetime for comparison - ensure we're comparing full months
 filtered_df = filtered_df[
@@ -287,10 +304,10 @@ else:
     comparison_start = comparison_end - timedelta(days=days_diff)
 
 comparison_df = df.copy()
-if selected_store != "All Stores":
-    comparison_df = comparison_df[comparison_df["Store"] == selected_store]
-if selected_department != "All Departments":
-    comparison_df = comparison_df[comparison_df["Department"] == selected_department]
+
+# Apply same filters
+comparison_df = comparison_df[comparison_df["Store"].isin(selected_stores)]
+comparison_df = comparison_df[comparison_df["Department"].isin(selected_departments)]
 
 # Convert to datetime for comparison - use same logic as filtered_df
 comparison_df = comparison_df[
@@ -781,7 +798,7 @@ with tab1:
     )
 
 with tab2:
-    if selected_store == "All Stores":
+    if len(selected_stores) == len(stores):
         store_perf = (
             filtered_df
             .groupby("Store")
@@ -831,10 +848,10 @@ with tab2:
             use_container_width=True
         )
     else:
-        st.info(f"Currently viewing: {selected_store}. Select 'All Stores' to see comparison.")
+        st.info(f"Currently viewing: {', '.join(selected_stores)}. Select all stores to see comparison.")
 
 with tab3:
-    if selected_department == "All Departments":
+    if len(selected_departments) == len(departments):
         dept_perf = (
             filtered_df
             .groupby("Department")
@@ -894,7 +911,7 @@ with tab3:
             use_container_width=True
         )
     else:
-        st.info(f"Currently viewing: {selected_department}. Select 'All Departments' to see mix.")
+        st.info(f"Currently viewing: {', '.join(selected_departments)}. Select all departments to see mix.")
 
 st.markdown("---")
 
@@ -970,8 +987,8 @@ with st.expander("Export Data & Details"):
     
     with col2:
         st.markdown("**Filters Applied**")
-        st.write(f"Store: {selected_store}")
-        st.write(f"Department: {selected_department}")
+        st.write(f"Stores: {', '.join(selected_stores) if len(selected_stores) < 5 else f'{len(selected_stores)} stores selected'}")
+        st.write(f"Departments: {', '.join(selected_departments) if len(selected_departments) < 5 else f'{len(selected_departments)} departments selected'}")
     
     st.markdown("**Raw Data**")
     st.dataframe(filtered_df, use_container_width=True)
