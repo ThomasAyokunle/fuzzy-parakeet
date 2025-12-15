@@ -104,6 +104,17 @@ def load_data():
 
 df = load_data()
 
+# Debug: Check raw data
+with st.expander("Debug: Raw Data Info"):
+    st.write(f"Total rows loaded: {len(df)}")
+    st.write(f"Date range in data: {df['Month'].min()} to {df['Month'].max()}")
+    st.write(f"Unique months: {df['Month'].dt.to_period('M').nunique()}")
+    st.write("Month distribution:")
+    month_dist = df.groupby(df['Month'].dt.to_period('M')).size().sort_index()
+    st.write(month_dist)
+    st.write("Sample data:")
+    st.dataframe(df[['Month', 'Store', 'Department', 'Revenue']].head(20))
+
 # --------------------------------
 # SIDEBAR FILTERS
 # --------------------------------
@@ -218,11 +229,14 @@ if selected_store != "All Stores":
 if selected_department != "All Departments":
     filtered_df = filtered_df[filtered_df["Department"] == selected_department]
 
-# Convert dates to datetime for comparison
+# Convert dates to datetime for comparison - ensure we're comparing full months
 filtered_df = filtered_df[
     (filtered_df["Month"] >= pd.to_datetime(start_date)) &
     (filtered_df["Month"] <= pd.to_datetime(end_date))
 ]
+
+# Debug: Show what we're filtering
+st.sidebar.write(f"Records found: {len(filtered_df)}")
 
 # --------------------------------
 # NUMBER FORMATTING HELPER
@@ -270,11 +284,15 @@ if selected_store != "All Stores":
 if selected_department != "All Departments":
     comparison_df = comparison_df[comparison_df["Department"] == selected_department]
 
-# Convert to datetime for comparison
+# Convert to datetime for comparison - use same logic as filtered_df
 comparison_df = comparison_df[
     (comparison_df["Month"] >= pd.to_datetime(comparison_start)) &
     (comparison_df["Month"] <= pd.to_datetime(comparison_end))
 ]
+
+# Debug: Show comparison data
+st.sidebar.write(f"Comparison records: {len(comparison_df)}")
+st.sidebar.write(f"Comp period: {comparison_start.strftime('%b %Y')} - {comparison_end.strftime('%b %Y')}")
 
 # --------------------------------
 # KPI CALCULATIONS
