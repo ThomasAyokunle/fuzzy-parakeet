@@ -109,6 +109,25 @@ df = load_data()
 # --------------------------------
 st.sidebar.markdown("### 🎯 Filters")
 
+# Add theme toggle
+theme = st.sidebar.radio("🎨 Theme", ["Light", "Dark"], index=1, horizontal=True)
+
+# Set color scheme based on theme
+if theme == "Dark":
+    bg_color = '#111827'
+    plot_bg = '#1f2937'
+    text_color = '#e5e7eb'
+    grid_color = '#374151'
+    title_color = '#f3f4f6'
+else:
+    bg_color = '#ffffff'
+    plot_bg = '#f9fafb'
+    text_color = '#1f2937'
+    grid_color = '#e5e7eb'
+    title_color = '#111827'
+
+st.sidebar.markdown("---")
+
 stores = ["All Stores"] + sorted(df["Store"].dropna().unique().tolist())
 departments = ["All Departments"] + sorted(df["Department"].dropna().unique().tolist())
 
@@ -138,6 +157,13 @@ preset = st.sidebar.selectbox(
     ["Custom", "MTD", "QTD", "YTD", "Last 6 Months", "Last 12 Months"]
 )
 
+# Comparison type
+comparison_type = st.sidebar.radio(
+    "Compare with:",
+    ["Previous Period", "Same Period Last Year"],
+    help="Previous Period: Compare with the immediately preceding period of same length\nSame Period Last Year: Compare with the same months from last year"
+)
+
 if preset == "MTD":
     # Current month data (if available)
     start_date = effective_max_date.replace(day=1)
@@ -152,14 +178,20 @@ elif preset == "YTD":
 elif preset == "Last 6 Months":
     # Go back 6 complete months
     end_date = effective_max_date
-    if end_date.month > 6:
-        start_date = end_date.replace(month=end_date.month - 6, day=1)
+    months_back = 6
+    if end_date.month > months_back:
+        start_date = end_date.replace(month=end_date.month - months_back, day=1)
     else:
-        start_date = end_date.replace(year=end_date.year - 1, month=end_date.month + 6, day=1)
+        start_date = end_date.replace(year=end_date.year - 1, month=12 + end_date.month - months_back, day=1)
 elif preset == "Last 12 Months":
     # Go back 12 complete months
     end_date = effective_max_date
-    start_date = end_date.replace(year=end_date.year - 1, month=end_date.month, day=1)
+    start_date = end_date.replace(year=end_date.year - 1, day=1)
+    # Adjust to first day of the month 12 months ago
+    if end_date.month == 12:
+        start_date = start_date.replace(month=1)
+    else:
+        start_date = start_date.replace(month=end_date.month + 1)
 else:
     date_selection = st.sidebar.date_input(
         "Select date range",
@@ -217,8 +249,20 @@ def format_number_plain(num):
 # COMPARISON PERIOD
 # --------------------------------
 days_diff = (end_date - start_date).days
-comparison_start = start_date - timedelta(days=days_diff)
-comparison_end = start_date - timedelta(days=1)
+
+if comparison_type == "Same Period Last Year":
+    # Compare with same months from last year
+    try:
+        comparison_start = start_date.replace(year=start_date.year - 1)
+        comparison_end = end_date.replace(year=end_date.year - 1)
+    except ValueError:
+        # Handle leap year edge case (Feb 29)
+        comparison_start = start_date.replace(year=start_date.year - 1, day=28)
+        comparison_end = end_date.replace(year=end_date.year - 1, day=28)
+else:
+    # Previous Period - same length immediately before current period
+    comparison_end = start_date - timedelta(days=1)
+    comparison_start = comparison_end - timedelta(days=days_diff)
 
 comparison_df = df.copy()
 if selected_store != "All Stores":
@@ -386,10 +430,11 @@ fig_rev_profit.add_trace(go.Bar(
     x=monthly_current["Month_Label"],
     y=monthly_current["Revenue"],
     name="Revenue (Current)",
-    marker_color='#667eea',
+    marker_color='#6366f1',
     text=monthly_current["Revenue"].apply(lambda x: format_number_plain(x)),
     textposition='outside',
-    textfont=dict(size=10)
+    textfont=dict(size=11, color='#e5e7eb'),
+    hovertemplate='<b>%{x}</b><br>Revenue: ₦%{y:,.0f}<extra></extra>'
 ))
 
 # Current period - Gross Profit (line)
@@ -398,8 +443,9 @@ fig_rev_profit.add_trace(go.Scatter(
     y=monthly_current["Gross_Profit"],
     name="Gross Profit (Current)",
     mode='lines+markers',
-    marker=dict(size=8, color='#f5576c'),
-    line=dict(width=3, color='#f5576c')
+    marker=dict(size=10, color='#ef4444', line=dict(width=2, color='white')),
+    line=dict(width=4, color='#ef4444'),
+    hovertemplate='<b>%{x}</b><br>Gross Profit: ₦%{y:,.0f}<extra></extra>'
 ))
 
 # Previous period - Revenue (dashed line for comparison)
@@ -409,35 +455,63 @@ if len(monthly_comparison) > 0:
         y=monthly_comparison["Revenue"],
         name="Revenue (Previous)",
         mode='lines',
-        line=dict(width=2, color='#667eea', dash='dash'),
-        opacity=0.5
+        line=dict(width=3, color='#6366f1', dash='dash'),
+        opacity=0.6,
+        hovertemplate='<b>%{x}</b><br>Revenue (Prev): ₦%{y:,.0f}<extra></extra>'
     ))
 
 fig_rev_profit.update_layout(
-    title="Revenue & Gross Profit Trend",
-    xaxis_title="Month",
+    title={
+        'text': "Revenue & Gross Profit Trend",
+        'font': {'size': 18, 'color': '#f3f4f6', 'family': 'Arial Black'}
+    },
+    xaxis_title="",
     yaxis_title="Amount (₦)",
     hovermode='x unified',
-    height=450,
+    height=480,
     showlegend=True,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    xaxis=dict(tickangle=-45)
+    legend=dict(
+        orientation="h",
+        yanchor="top",
+        y=1.15,
+        xanchor="center",
+        x=0.5,
+        bgcolor='rgba(0,0,0,0)',
+        font=dict(size=12, color='#e5e7eb')
+    ),
+    plot_bgcolor='#1f2937',
+    paper_bgcolor='#111827',
+    font=dict(color='#e5e7eb'),
+    xaxis=dict(
+        tickangle=-45,
+        gridcolor='#374151',
+        tickfont=dict(size=11, color='#9ca3af')
+    ),
+    yaxis=dict(
+        gridcolor='#374151',
+        tickfont=dict(size=11, color='#9ca3af'),
+        tickformat=','
+    ),
+    margin=dict(t=100, b=80, l=80, r=40)
 )
 
 # Margin Trend with Comparison
 fig_margin = go.Figure()
 
-# Current period margin
+# Current period margin with fill
 fig_margin.add_trace(go.Scatter(
     x=monthly_current["Month_Label"],
     y=monthly_current["Margin"],
     name="Current Period",
     mode='lines+markers',
     fill='tozeroy',
-    marker=dict(size=10, color='#00f2fe'),
-    line=dict(width=3, color='#4facfe'),
+    marker=dict(size=12, color='#06b6d4', line=dict(width=2, color='white')),
+    line=dict(width=4, color='#06b6d4'),
+    fillcolor='rgba(6, 182, 212, 0.3)',
     text=monthly_current["Margin"].apply(lambda x: f"{x:.1f}%"),
-    textposition='top center'
+    textposition='top center',
+    textfont=dict(size=10, color='#e5e7eb'),
+    hovertemplate='<b>%{x}</b><br>Margin: %{y:.1f}%<extra></extra>'
 ))
 
 # Previous period margin
@@ -447,22 +521,54 @@ if len(monthly_comparison) > 0:
         y=monthly_comparison["Margin"],
         name="Previous Period",
         mode='lines+markers',
-        marker=dict(size=8, color='#a78bfa'),
-        line=dict(width=2, color='#a78bfa', dash='dot'),
-        opacity=0.6
+        marker=dict(size=10, color='#a78bfa', line=dict(width=2, color='white')),
+        line=dict(width=3, color='#a78bfa', dash='dot'),
+        opacity=0.8,
+        hovertemplate='<b>%{x}</b><br>Margin (Prev): %{y:.1f}%<extra></extra>'
     ))
 
-fig_margin.add_hline(y=20, line_dash="dash", line_color="red", 
-                     annotation_text="Target: 20%", annotation_position="right")
+fig_margin.add_hline(
+    y=20,
+    line_dash="dash",
+    line_color="#ef4444",
+    line_width=2,
+    annotation_text="Target: 20%",
+    annotation_position="right",
+    annotation_font=dict(size=12, color='#ef4444')
+)
+
 fig_margin.update_layout(
-    title="Gross Margin Trend (%) - Current vs Previous",
-    xaxis_title="Month",
+    title={
+        'text': "Gross Margin Trend (%) - Current vs Previous",
+        'font': {'size': 18, 'color': '#f3f4f6', 'family': 'Arial Black'}
+    },
+    xaxis_title="",
     yaxis_title="Margin %",
-    height=450,
+    height=480,
     showlegend=True,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    xaxis=dict(tickangle=-45),
-    yaxis=dict(range=[0, max(monthly_current["Margin"].max() * 1.2, 25)])
+    legend=dict(
+        orientation="h",
+        yanchor="top",
+        y=1.15,
+        xanchor="center",
+        x=0.5,
+        bgcolor='rgba(0,0,0,0)',
+        font=dict(size=12, color='#e5e7eb')
+    ),
+    plot_bgcolor='#1f2937',
+    paper_bgcolor='#111827',
+    font=dict(color='#e5e7eb'),
+    xaxis=dict(
+        tickangle=-45,
+        gridcolor='#374151',
+        tickfont=dict(size=11, color='#9ca3af')
+    ),
+    yaxis=dict(
+        gridcolor='#374151',
+        tickfont=dict(size=11, color='#9ca3af'),
+        range=[0, max(monthly_current["Margin"].max() * 1.15, 25)]
+    ),
+    margin=dict(t=100, b=80, l=80, r=40)
 )
 
 col1, col2 = st.columns(2)
@@ -471,20 +577,28 @@ col2.plotly_chart(fig_margin, use_container_width=True)
 
 # Add a monthly comparison table
 st.markdown("### 📋 Monthly Breakdown")
-comparison_table = monthly_current[["Month_Label", "Revenue", "Gross_Profit", "Margin", "Transactions"]].copy()
-comparison_table.columns = ["Month", "Revenue", "Gross Profit", "Margin %", "Transactions"]
 
-# Format the table
-st.dataframe(
-    comparison_table.style.format({
-        "Revenue": lambda x: format_number(x),
-        "Gross Profit": lambda x: format_number(x),
-        "Margin %": "{:.1f}%",
-        "Transactions": "{:,.0f}"
-    }),
-    hide_index=True,
-    use_container_width=True
-)
+if len(monthly_current) > 0:
+    comparison_table = monthly_current[["Month_Label", "Revenue", "Gross_Profit", "Margin", "Transactions"]].copy()
+    comparison_table.columns = ["Month", "Revenue", "Gross Profit", "Margin %", "Transactions"]
+
+    # Format the table
+    st.dataframe(
+        comparison_table.style.format({
+            "Revenue": lambda x: format_number(x),
+            "Gross Profit": lambda x: format_number(x),
+            "Margin %": "{:.1f}%",
+            "Transactions": "{:,.0f}"
+        }).set_properties(**{
+            'background-color': plot_bg,
+            'color': text_color,
+            'border-color': grid_color
+        }),
+        hide_index=True,
+        use_container_width=True
+    )
+else:
+    st.info("No data available for the selected period")
 
 st.markdown("---")
 
@@ -598,17 +712,27 @@ with tab1:
         marker=dict(
             color=top_products["Revenue"],
             colorscale='Viridis',
-            showscale=True
+            showscale=True,
+            colorbar=dict(title="Revenue", tickfont=dict(color=text_color))
         ),
         text=top_products["Revenue"].apply(lambda x: format_number(x)),
-        textposition='outside'
+        textposition='outside',
+        textfont=dict(color=text_color),
+        hovertemplate='<b>%{y}</b><br>Revenue: ₦%{x:,.0f}<extra></extra>'
     ))
     fig_products.update_layout(
-        title="Top 10 Products by Revenue",
+        title={
+            'text': "Top 10 Products by Revenue",
+            'font': {'size': 18, 'color': title_color, 'family': 'Arial Black'}
+        },
         xaxis_title="Revenue (₦)",
         yaxis_title="",
         height=500,
-        yaxis=dict(autorange="reversed")
+        yaxis=dict(autorange="reversed", tickfont=dict(color=text_color)),
+        plot_bgcolor=plot_bg,
+        paper_bgcolor=bg_color,
+        font=dict(color=text_color),
+        xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color))
     )
     st.plotly_chart(fig_products, use_container_width=True)
     
@@ -641,13 +765,25 @@ with tab2:
             x=store_perf["Store"],
             y=store_perf["Revenue"],
             name="Revenue",
-            marker_color='#667eea'
+            marker_color='#6366f1',
+            text=store_perf["Revenue"].apply(lambda x: format_number_plain(x)),
+            textposition='outside',
+            textfont=dict(color=text_color),
+            hovertemplate='<b>%{x}</b><br>Revenue: ₦%{y:,.0f}<extra></extra>'
         ))
         fig_store.update_layout(
-            title="Store Performance Comparison",
+            title={
+                'text': "Store Performance Comparison",
+                'font': {'size': 18, 'color': title_color, 'family': 'Arial Black'}
+            },
             xaxis_title="Store",
             yaxis_title="Revenue (₦)",
-            height=400
+            height=400,
+            plot_bgcolor=plot_bg,
+            paper_bgcolor=bg_color,
+            font=dict(color=text_color),
+            xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)),
+            yaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color))
         )
         st.plotly_chart(fig_store, use_container_width=True)
         
@@ -684,8 +820,21 @@ with tab3:
             hole=0.4,
             color_discrete_sequence=px.colors.qualitative.Set3
         )
-        fig_dept.update_traces(textposition='inside', textinfo='percent+label')
-        fig_dept.update_layout(height=500)
+        fig_dept.update_traces(
+            textposition='inside',
+            textinfo='percent+label',
+            textfont=dict(size=12, color='white')
+        )
+        fig_dept.update_layout(
+            height=500,
+            title={
+                'text': "Revenue Distribution by Department",
+                'font': {'size': 18, 'color': title_color, 'family': 'Arial Black'}
+            },
+            paper_bgcolor=bg_color,
+            font=dict(color=text_color),
+            legend=dict(font=dict(color=text_color))
+        )
         st.plotly_chart(fig_dept, use_container_width=True)
         
         st.dataframe(
