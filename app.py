@@ -82,7 +82,7 @@ st.markdown("**Executive Analytics | Real-time Performance Monitoring**")
 # GOOGLE SHEET CONFIG
 # --------------------------------
 GOOGLE_SHEET_ID = "1x3I_PlOBsVpftrnt_X1h0SHsn9zCu8RTILC13aXkqAs"
-SHEET_NAME = "YEARLY_DATA"
+SHEET_NAME = "YEARLY DATA"
 encoded_sheet_name = urllib.parse.quote(SHEET_NAME)
 CSV_URL = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={encoded_sheet_name}"
 
