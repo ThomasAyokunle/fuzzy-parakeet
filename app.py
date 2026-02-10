@@ -94,21 +94,7 @@ def load_data():
     df = pd.read_csv(CSV_URL)
     df.columns = df.columns.str.strip()
     
-    # Print columns to debug
-    st.write("DEBUG - Columns found:", df.columns.tolist())
-    
-    # Find the month column (handle various possible names)
-    month_col = None
-    for col in df.columns:
-        if 'month' in col.lower():
-            month_col = col
-            break
-    
-    # If still not found, show error with actual columns
-    if month_col is None:
-        st.error(f"Month column not found! Available columns: {df.columns.tolist()}")
-        st.stop()
-    
+
     # Create a clean Month column
     df["Month"] = pd.to_datetime(df[month_col], format='%d-%m-%Y', errors='coerce')
     
