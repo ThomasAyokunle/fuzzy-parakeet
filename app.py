@@ -96,7 +96,7 @@ def load_data():
     
 
     # Create a clean Month column
-    df["Month"] = pd.to_datetime(df[month_col], format='%d-%m-%Y', errors='coerce')
+    df["Month"] = pd.to_datetime(df[Month], format='%d-%m-%Y', errors='coerce')
     
     # Handle numeric columns
     numeric_cols = ["Ext Price", "Qty Sold", "Ext Cost", "Markup %", "Margin %", "Total Margin $"]
