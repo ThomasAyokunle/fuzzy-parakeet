@@ -94,9 +94,8 @@ def load_data():
     df = pd.read_csv(CSV_URL)
     df.columns = df.columns.str.strip()
     
-
     # Create a clean Month column
-    df["Month"] = pd.to_datetime(df[Month], format='%d-%m-%Y', errors='coerce')
+    df["Month"] = pd.to_datetime(df["Month"], format='%d-%m-%Y', errors='coerce')
     
     # Handle numeric columns
     numeric_cols = ["Ext Price", "Qty Sold", "Ext Cost", "Markup %", "Margin %", "Total Margin $"]
@@ -108,6 +107,8 @@ def load_data():
     df["Revenue"] = df["Ext Price"]
     
     return df
+
+df = load_data()
 
 df = load_data()
 
