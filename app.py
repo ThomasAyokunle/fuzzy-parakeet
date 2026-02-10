@@ -89,6 +89,10 @@ CSV_URL = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx
 # --------------------------------
 # LOAD DATA
 # --------------------------------
+@st.cache_data
+def load_data():
+    df = pd.read_csv("your_file.csv")  # or however you're loading data
+    print(df.columns.tolist())
 @st.cache_data(ttl=300)
 def load_data():
     df = pd.read_csv(CSV_URL)
