@@ -197,7 +197,7 @@ else:
 
 # Use the actual max date from data (which should be month-end)
 # But don't go beyond last complete month
-effective_max_date = min(max_date, last_complete_month)
+effective_max_date = max_date
 
 preset = st.sidebar.selectbox(
     "Quick Select",
@@ -351,12 +351,11 @@ def calculate_kpis(df):
     gross_profit = df["Total Margin $"].sum()
     margin_pct = (gross_profit / revenue * 100) if revenue else 0
     footfall = len(df)
-    avg_basket = revenue / footfall if footfall else 0
     qty_sold = df["Qty Sold"].sum()
-    return revenue, gross_profit, margin_pct, footfall, avg_basket, qty_sold
+    return revenue, gross_profit, margin_pct, footfall, qty_sold
 
-curr_rev, curr_gp, curr_margin, curr_footfall, curr_basket, curr_qty = calculate_kpis(filtered_df)
-comp_rev, comp_gp, comp_margin, comp_footfall, comp_basket, comp_qty = calculate_kpis(comparison_df)
+curr_rev, curr_gp, curr_margin, curr_footfall, curr_qty = calculate_kpis(filtered_df)
+comp_rev, comp_gp, comp_margin, comp_footfall, comp_qty = calculate_kpis(comparison_df)
 
 # Calculate deltas
 rev_change = ((curr_rev - comp_rev) / comp_rev * 100) if comp_rev else 0
@@ -370,7 +369,7 @@ basket_change = ((curr_basket - comp_basket) / comp_basket * 100) if comp_basket
 # --------------------------------
 st.markdown("## Executive Summary")
 
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
     if rev_change > 0:
@@ -433,7 +432,7 @@ st.markdown("---")
 # --------------------------------
 st.markdown("## Key Performance Indicators")
 
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.metric("Revenue", format_number(curr_rev), f"{rev_change:+.1f}%")
@@ -445,10 +444,7 @@ with c3:
     st.metric("Margin %", f"{curr_margin:.1f}%", f"{margin_change:+.1f}pp")
 
 with c4:
-    st.metric("Transactions", f"{curr_footfall:,}", f"{footfall_change:+.1f}%")
-
-with c5:
-    st.metric("Avg Basket", format_number(curr_basket), f"{basket_change:+.1f}%")
+    st.metric("Transactions", f"{curr_footfall:,}", f"{footfall_change:+.1f}%"
 
 st.markdown("---")
 
