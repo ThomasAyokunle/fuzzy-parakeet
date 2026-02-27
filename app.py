@@ -739,11 +739,6 @@ if comp_rev > 0:
     elif margin_change < -1:
         comparison_insights.append(("warning", f"Margin compressed by {abs(margin_change):.1f} percentage points"))
     
-    if footfall_change < -5 and rev_change > 0:
-        comparison_insights.append(("info", "Revenue up despite fewer transactions - higher basket value driving growth"))
-    elif footfall_change > 5 and basket_change < 0:
-        comparison_insights.append(("info", "More transactions but lower basket - opportunity to increase upselling"))
-
 cols = st.columns(len(comparison_insights) if comparison_insights else 1)
 for idx, (box_type, message) in enumerate(comparison_insights):
     with cols[idx]:
@@ -957,12 +952,6 @@ if margin_change < -2:
     insights.append(("warning", "Margin Pressure", f"Margins declined {abs(margin_change):.1f}pp - review pricing and supplier costs"))
 elif curr_margin < 18:
     insights.append(("warning", "Low Margins", "Current margins below industry standard - pricing review recommended"))
-
-# Basket size
-if basket_change < -5:
-    insights.append(("warning", "Declining Basket", f"Average basket down {abs(basket_change):.1f}% - consider upselling strategies"))
-elif basket_change > 5:
-    insights.append(("success", "Growing Basket", f"Average basket up {basket_change:.1f}% - successful cross-selling"))
 
 # Top performer
 if len(filtered_df) > 0:
