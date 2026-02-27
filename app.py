@@ -362,7 +362,6 @@ rev_change = ((curr_rev - comp_rev) / comp_rev * 100) if comp_rev else 0
 gp_change = ((curr_gp - comp_gp) / comp_gp * 100) if comp_gp else 0
 margin_change = curr_margin - comp_margin
 footfall_change = ((curr_footfall - comp_footfall) / comp_footfall * 100) if comp_footfall else 0
-basket_change = ((curr_basket - comp_basket) / comp_basket * 100) if comp_basket else 0
 
 # --------------------------------
 # EXECUTIVE SUMMARY
