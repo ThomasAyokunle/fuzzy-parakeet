@@ -252,7 +252,7 @@ else:
         start_date = date_selection
         end_date = date_selection
 
-st.sidebar.info(f"📊 Latest data: {effective_max_date.strftime('%b %Y')}")
+st.sidebar.info(f"Latest data: {effective_max_date.strftime('%b %Y')}")
 
 # --------------------------------
 # APPLY FILTERS
@@ -444,7 +444,7 @@ with c3:
     st.metric("Margin %", f"{curr_margin:.1f}%", f"{margin_change:+.1f}pp")
 
 with c4:
-    st.metric("Transactions", f"{curr_footfall:,}", f"{footfall_change:+.1f}%"
+    st.metric("Transactions", f"{curr_footfall:,}", f"{footfall_change:+.1f}%")
 
 st.markdown("---")
 
