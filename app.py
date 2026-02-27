@@ -406,24 +406,6 @@ with col2:
         </div>
         """, unsafe_allow_html=True)
 
-with col3:
-    if basket_change > 0:
-        st.markdown(f"""
-        <div class="success-box">
-        <h4>Basket Value Up</h4>
-        <p style="font-size: 1.5rem; font-weight: bold;">+{basket_change:.1f}%</p>
-        <p>Average transaction size</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="insight-box">
-        <h4>Basket Value</h4>
-        <p style="font-size: 1.5rem; font-weight: bold;">{basket_change:.1f}%</p>
-        <p>Average transaction size</p>
-        </div>
-        """, unsafe_allow_html=True)
-
 st.markdown("---")
 
 # --------------------------------
