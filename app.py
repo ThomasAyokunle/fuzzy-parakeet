@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -795,6 +794,66 @@ with tab1:
         use_container_width=True
     )
 
+    # --- Comparative Growth/Decline Table for Products ---
+    st.markdown("### Product Growth vs Previous Period")
+    if len(comparison_df) > 0:
+        curr_products = (
+            filtered_df
+            .groupby("Item Name")
+            .agg(Revenue=("Revenue", "sum"), Quantity=("Qty Sold", "sum"))
+            .reset_index()
+        )
+        comp_products = (
+            comparison_df
+            .groupby("Item Name")
+            .agg(Revenue_Prev=("Revenue", "sum"), Quantity_Prev=("Qty Sold", "sum"))
+            .reset_index()
+        )
+        product_compare = pd.merge(curr_products, comp_products, on="Item Name", how="outer").fillna(0)
+        product_compare["Revenue_Change"] = product_compare["Revenue"] - product_compare["Revenue_Prev"]
+        product_compare["Revenue_Change_%"] = product_compare.apply(
+            lambda r: (r["Revenue_Change"] / r["Revenue_Prev"] * 100) if r["Revenue_Prev"] > 0 else None, axis=1
+        )
+        product_compare = product_compare[product_compare["Revenue"] > 0].sort_values("Revenue_Change", ascending=False)
+
+        top_growing = product_compare.head(10).copy()
+        top_declining = product_compare[product_compare["Revenue_Change"] < 0].tail(10).sort_values("Revenue_Change").copy()
+
+        gr_col, dec_col = st.columns(2)
+        with gr_col:
+            st.markdown("#### 🟢 Top Growing Products")
+            display_growing = top_growing[["Item Name", "Revenue", "Revenue_Prev", "Revenue_Change", "Revenue_Change_%"]].copy()
+            display_growing.columns = ["Product", "Current Rev", "Prev Rev", "Change (₦)", "Change (%)"]
+            st.dataframe(
+                display_growing.style.format({
+                    "Current Rev": lambda x: format_number(x),
+                    "Prev Rev": lambda x: format_number(x),
+                    "Change (₦)": lambda x: format_number(x),
+                    "Change (%)": lambda x: f"{x:+.1f}%" if pd.notna(x) else "New"
+                }),
+                hide_index=True,
+                use_container_width=True
+            )
+        with dec_col:
+            st.markdown("#### 🔴 Top Declining Products")
+            if len(top_declining) > 0:
+                display_declining = top_declining[["Item Name", "Revenue", "Revenue_Prev", "Revenue_Change", "Revenue_Change_%"]].copy()
+                display_declining.columns = ["Product", "Current Rev", "Prev Rev", "Change (₦)", "Change (%)"]
+                st.dataframe(
+                    display_declining.style.format({
+                        "Current Rev": lambda x: format_number(x),
+                        "Prev Rev": lambda x: format_number(x),
+                        "Change (₦)": lambda x: format_number(x),
+                        "Change (%)": lambda x: f"{x:+.1f}%" if pd.notna(x) else "New"
+                    }),
+                    hide_index=True,
+                    use_container_width=True
+                )
+            else:
+                st.info("No declining products in this period.")
+    else:
+        st.info("No comparison period data available to compute growth/decline.")
+
 with tab2:
     if len(selected_stores) == len(stores):
         store_perf = (
@@ -908,6 +967,72 @@ with tab3:
             hide_index=True,
             use_container_width=True
         )
+
+        # --- Comparative Growth/Decline Table for Departments ---
+        st.markdown("### Department Growth vs Previous Period")
+        if len(comparison_df) > 0:
+            curr_dept = (
+                filtered_df
+                .groupby("Department")
+                .agg(Revenue=("Revenue", "sum"), Margin=("Margin %", "mean"))
+                .reset_index()
+            )
+            comp_dept = (
+                comparison_df
+                .groupby("Department")
+                .agg(Revenue_Prev=("Revenue", "sum"), Margin_Prev=("Margin %", "mean"))
+                .reset_index()
+            )
+            dept_compare = pd.merge(curr_dept, comp_dept, on="Department", how="outer").fillna(0)
+            dept_compare["Revenue_Change"] = dept_compare["Revenue"] - dept_compare["Revenue_Prev"]
+            dept_compare["Revenue_Change_%"] = dept_compare.apply(
+                lambda r: (r["Revenue_Change"] / r["Revenue_Prev"] * 100) if r["Revenue_Prev"] > 0 else None, axis=1
+            )
+            dept_compare["Margin_Change"] = dept_compare["Margin"] - dept_compare["Margin_Prev"]
+            dept_compare = dept_compare[dept_compare["Revenue"] > 0].sort_values("Revenue_Change", ascending=False)
+
+            dept_growing = dept_compare[dept_compare["Revenue_Change"] >= 0].copy()
+            dept_declining = dept_compare[dept_compare["Revenue_Change"] < 0].sort_values("Revenue_Change").copy()
+
+            gr_col, dec_col = st.columns(2)
+            with gr_col:
+                st.markdown("#### 🟢 Growing Departments")
+                if len(dept_growing) > 0:
+                    display_dept_growing = dept_growing[["Department", "Revenue", "Revenue_Prev", "Revenue_Change", "Revenue_Change_%", "Margin_Change"]].copy()
+                    display_dept_growing.columns = ["Department", "Current Rev", "Prev Rev", "Change (₦)", "Change (%)", "Margin Δ (pp)"]
+                    st.dataframe(
+                        display_dept_growing.style.format({
+                            "Current Rev": lambda x: format_number(x),
+                            "Prev Rev": lambda x: format_number(x),
+                            "Change (₦)": lambda x: format_number(x),
+                            "Change (%)": lambda x: f"{x:+.1f}%" if pd.notna(x) else "New",
+                            "Margin Δ (pp)": lambda x: f"{x:+.1f}"
+                        }),
+                        hide_index=True,
+                        use_container_width=True
+                    )
+                else:
+                    st.info("No growing departments in this period.")
+            with dec_col:
+                st.markdown("#### 🔴 Declining Departments")
+                if len(dept_declining) > 0:
+                    display_dept_declining = dept_declining[["Department", "Revenue", "Revenue_Prev", "Revenue_Change", "Revenue_Change_%", "Margin_Change"]].copy()
+                    display_dept_declining.columns = ["Department", "Current Rev", "Prev Rev", "Change (₦)", "Change (%)", "Margin Δ (pp)"]
+                    st.dataframe(
+                        display_dept_declining.style.format({
+                            "Current Rev": lambda x: format_number(x),
+                            "Prev Rev": lambda x: format_number(x),
+                            "Change (₦)": lambda x: format_number(x),
+                            "Change (%)": lambda x: f"{x:+.1f}%" if pd.notna(x) else "New",
+                            "Margin Δ (pp)": lambda x: f"{x:+.1f}"
+                        }),
+                        hide_index=True,
+                        use_container_width=True
+                    )
+                else:
+                    st.info("No declining departments in this period.")
+        else:
+            st.info("No comparison period data available to compute growth/decline.")
     else:
         st.info(f"Currently viewing: {', '.join(selected_departments)}. Select all departments to see mix.")
 
